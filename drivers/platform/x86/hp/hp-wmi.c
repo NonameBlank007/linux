@@ -2356,6 +2356,25 @@ static int victus_s_powersource_event(struct notifier_block *nb,
 	}
 
 	/*
+	 * For board 8A3D (victus_s_ec), query 0x29 is unsupported and makes
+	 * CPU power limit to 4-6W. Match omen_power_source_event omen/victus behavior:
+	 * if returning to AC and the profile differs from EC, restore the user-selected profile.
+	 */
+	if (hp_wmi_thermal_profile() == &victus_s_ec_thermal_params) {
+		if (power_supply_is_system_supplied() > 0 ||
+	    active_platform_profile != actual_profile)
+			return NOTIFY_DONE;
+
+		err = platform_profile_victus_s_set_ec(active_platform_profile);
+		if (err < 0) {
+			pr_warn("Failed to restore platform profile (%d)\n", err);
+			return  NOTIFY_DONE;
+		}
+
+		return NOTIFY_OK;
+	}
+
+	/*
 	 * Switching to battery power source while Performance mode is active
 	 * needs manual triggering of CPU power limits. Same goes when switching
 	 * to AC power source while Performance mode is active. Other modes
