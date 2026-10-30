@@ -407,8 +407,10 @@ STATIC_IFN_KUNIT void amdgpu_dm_set_panel_type(struct amdgpu_dm_connector *aconn
 	struct dc_link *link = aconnector->dc_link;
 	struct amdgpu_device *adev;
 	enum dc_panel_type panel_type = PANEL_TYPE_NONE;
+	const struct drm_panel_backlight_quirk *panel_backlight_quirk;
 
 	adev = drm_to_adev(connector->dev);
+	panel_backlight_quirk = drm_get_panel_backlight_quirk(aconnector->drm_edid);
 
 	switch (display_info->amd_vsdb.panel_type) {
 	case AMD_VSDB_PANEL_TYPE_OLED:
@@ -423,7 +425,9 @@ STATIC_IFN_KUNIT void amdgpu_dm_set_panel_type(struct amdgpu_dm_connector *aconn
 	if (panel_type == PANEL_TYPE_NONE) {
 		if (link->dpcd_sink_ext_caps.bits.miniled == 1)
 			panel_type = PANEL_TYPE_MINILED;
-		if (link->dpcd_sink_ext_caps.bits.oled == 1)
+		if (link->dpcd_sink_ext_caps.bits.oled == 1 &&
+		    amdgpu_backlight != 0 &&
+		    (IS_ERR_OR_NULL(panel_backlight_quirk) || !panel_backlight_quirk->force_pwm))
 			panel_type = PANEL_TYPE_OLED;
 	}
 

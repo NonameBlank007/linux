@@ -167,12 +167,13 @@ static u32 convert_brightness_to_millipercent(const struct amdgpu_dm_backlight_c
 	unsigned int min, max;
 	u32 signal, luminance;
 
-	if (!get_brightness_range(caps, &min, &max))
+	if (!get_brightness_range(caps, &min, &max) || !max)
 		return DIV_ROUND_CLOSEST_ULL((u64)user_brightness * 100000,
 					     MAX_BACKLIGHT_LEVEL);
 
-	user_brightness = clamp(user_brightness, min, max);
-	if (amdgpu_dc_debug_mask & DC_DISABLE_CUSTOM_BRIGHTNESS_CURVE)
+	user_brightness = min_t(u32, user_brightness, max);
+	if (!caps->data_points ||
+	    (amdgpu_dc_debug_mask & DC_DISABLE_CUSTOM_BRIGHTNESS_CURVE))
 		return DIV_ROUND_CLOSEST_ULL((u64)user_brightness * 100000, max);
 
 	signal = scale_input_to_fw(max, user_brightness);
@@ -443,15 +444,20 @@ u32 amdgpu_dm_backlight_get_level(struct amdgpu_display_manager *dm, int bl_idx)
 
 		if (!dc_link_get_backlight_level_nits(link, &avg, &peak))
 			return dm->brightness[bl_idx];
-		return convert_brightness_to_user(&caps, avg);
+		ret = convert_brightness_to_user(&caps, avg);
+	} else {
+		ret = dc_link_get_backlight_level(link);
+
+		if (ret == DC_ERROR_UNEXPECTED)
+			return dm->brightness[bl_idx];
+
+		ret = convert_brightness_to_user(&caps, ret);
 	}
 
-	ret = dc_link_get_backlight_level(link);
+	if (dm->backlight_dev[bl_idx])
+		ret = min_t(u32, ret, dm->backlight_dev[bl_idx]->props.max_brightness);
 
-	if (ret == DC_ERROR_UNEXPECTED)
-		return dm->brightness[bl_idx];
-
-	return convert_brightness_to_user(&caps, ret);
+	return ret;
 }
 EXPORT_IF_KUNIT(amdgpu_dm_backlight_get_level);
 

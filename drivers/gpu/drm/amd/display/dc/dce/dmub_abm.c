@@ -238,21 +238,20 @@ static bool dmub_abm_set_backlight_level_pwm_ex(struct abm *abm,
 		unsigned int panel_inst)
 {
 	(void)controller_id;
-	bool ret = false;
 	unsigned int feature_support;
 	enum dc_panel_type panel_type = PANEL_TYPE_NONE;
 
 	feature_support = abm_feature_support(abm, panel_inst);
 
-	if (feature_support == ABM_LCD_SUPPORT)
-		ret = dmub_abm_set_backlight_level(abm, backlight_pwm_u16_16, frame_ramp, panel_inst);
-	else if (feature_support == ABM_CACP_SUPPORT) {
+	if (feature_support == ABM_CACP_SUPPORT) {
 		panel_type = abm_get_paneltype(abm, panel_inst);
 		if (panel_type == PANEL_TYPE_MINILED)
-			ret = dmub_cacp_set_backlight_level(abm, backlight_pwm_u16_16, frame_ramp, panel_inst);
+			return dmub_cacp_set_backlight_level(abm,
+							     backlight_pwm_u16_16,
+							     frame_ramp, panel_inst);
 	}
 
-	return ret;
+	return dmub_abm_set_backlight_level(abm, backlight_pwm_u16_16, frame_ramp, panel_inst);
 }
 
 static const struct abm_funcs abm_funcs = {
