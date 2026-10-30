@@ -20,6 +20,15 @@ struct drm_get_panel_backlight_quirk {
 };
 
 static const struct drm_get_panel_backlight_quirk drm_panel_min_backlight_quirks[] = {
+	/* HP Victus 15-fb0xxx, AUX backlight non-functional, force PWM */
+	{
+		.dmi_match.field = DMI_SYS_VENDOR,
+		.dmi_match.value = "HP",
+		.dmi_match_other.field = DMI_PRODUCT_NAME,
+		.dmi_match_other.value = "Victus by HP Gaming Laptop 15-fb0xxx",
+		.ident.panel_id = drm_edid_encode_panel_id('B', 'O', 'E', 0x094d),
+		.quirk = { .force_pwm = true, },
+	},
 	/* Lenovo Legion 5 15ARH05, AUX backlight non-functional, force PWM */
 	{
 		.dmi_match.field = DMI_SYS_VENDOR,
